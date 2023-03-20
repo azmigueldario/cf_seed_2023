@@ -62,3 +62,8 @@ Temporary Items
 
 # Data directories
 raw_data
+
+###### NEXTFLOW #####
+#####################
+
+.nextflow*
