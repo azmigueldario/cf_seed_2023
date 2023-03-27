@@ -1,7 +1,7 @@
 #!/bin/bash                                 
 #SBATCH --mem-per-cpu=10G                           # GB of memory per cpu core - max 120GBper node
-#SBATCH --time=04:30:00                             # walltime
-#SBATCH --cpus-per-task=8                           # CPU cores per task (multithread) - Max 8 
+#SBATCH --time=12:30:00                             # walltime
+#SBATCH --cpus-per-task=10                           # CPU cores per task (multithread) - Max 8 
 #SBATCH --job-name="mag_pipeline_ncfb"              # job_name (optional)
 #SBATCH --chdir=/scratch/mdprieto/                  # change directory before executing optional)
 #SBATCH --output=./jobs_output/cfseed_ncfb_mag.out      
@@ -17,7 +17,6 @@ KRAKEN2_DB="/home/mdprieto/object_database/kraken2/k2_standard_20221209.tar.gz"
 
 
 # pipeline
-
 nextflow run nf-core/mag -r 2.3.0 \
     -profile singularity \
     -resume \
