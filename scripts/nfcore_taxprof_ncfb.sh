@@ -1,6 +1,8 @@
 #!/bin/bash                                 
+#SBATCH --ntasks=2
+#SBATCH --nodes=2
 #SBATCH --mem-per-cpu=10G                           # GB of memory per cpu core - max 120GBper node
-#SBATCH --time=12:30:00                             # walltime
+#SBATCH --time=1:30:00                             # walltime
 #SBATCH --cpus-per-task=10                           # CPU cores per task (multithread) - Max 8 
 #SBATCH --job-name="taxprof_pipeline_ncfb"              # job_name (optional)
 #SBATCH --chdir=/scratch/mdprieto/                  # change directory before executing optional)
@@ -13,7 +15,6 @@ module load singularity nextflow
 
 # ENV variables
 
-KRAKEN2_DB="/home/mdprieto/object_database/kraken2/k2_standard_20221209.tar.gz"
 SAMPLE_SHEET="/project/60005/mdprieto/cf_seed_2023/scripts/samplesheet_taxprof_ncfb.csv"
 DB_CSV="/project/60005/mdprieto/cf_seed_2023/scripts/databases_taxprof.csv"
 
