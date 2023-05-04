@@ -59,6 +59,7 @@ Temporary Items
 *.fq
 *.bam
 *.sam
+*.gff
 
 # Data directories
 raw_data
