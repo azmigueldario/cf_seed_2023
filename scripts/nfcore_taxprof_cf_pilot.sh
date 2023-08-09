@@ -30,7 +30,7 @@ nextflow run nf-core/taxprofiler -r 1.0.1 \
     --perform_shortread_complexityfilter \
     --perform_shortread_hostremoval \
     --hostremoval_reference $HUMAN_REFGENOME \
-    --shortread_hostremoval_index /project/cidgoh-object-storage/database/bowtie_GRCh38 \
+    --shortread_hostremoval_index $HUMAN_REFGENOME \
     --run_bracken \
     --run_kraken2 \
     --max_cpus 10 \

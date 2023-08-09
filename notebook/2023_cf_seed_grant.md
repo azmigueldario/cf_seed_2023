@@ -242,4 +242,5 @@ nextflow run nf-core/taxprofiler -r 1.0.0 \
 
 ### 20230808
 
-- Evaluating tax-profiler pipeline once again
+- Preparation for nf-taxprofiler includes defining the `sample_sheet.csv`, `database.csv` as well as putting the Bowtie2 index for human samples inside the folder with the reference genome
+- 
