@@ -1,4 +1,4 @@
 tool,db_name,db_params,db_path
-bracken,bracken_db,;-r 150,/home/mdprieto/object_database/kraken2/k2_standard_20221209.tar.gz
-kraken2,kraken2_db,--quick,/home/mdprieto/object_database/kraken2/k2_standard_20221209.tar.gz
-centrifuge,db1,,/project/cidgoh-object-storage/database/centrifuge
+bracken,bracken_db,;-r 150,/mnt/cidgoh-object-storage/database/kraken2/k2_standard_20221209.tar.gz
+kraken2,kraken2_db,--quick,/mnt/cidgoh-object-storage/database/kraken2/k2_standard_20221209.tar.gz
+centrifuge,db1,,/mnt/cidgoh-object-storage/database/centrifuge
