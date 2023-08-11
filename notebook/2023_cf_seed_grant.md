@@ -61,7 +61,6 @@ The project [PRJNA516870](https://www.ncbi.nlm.nih.gov/bioproject/PRJNA516870) w
 
 **Note:** The study PRJEB52317 has a larger sample of CF patients, but the available data seems to lack one of the paired-end reads.
 
-
 ### Environment setup
 
 ```sh
@@ -146,10 +145,8 @@ nextflow run $SEQQC_NF \
 
 ### 20230326 - Running metagenome analysis on Cedar or Eagle
 
-#### nf-core mag pipeline
-
-- Input needs to be on quotes when specifying path 'PATH/FASTQ_FILES'
-- Minimum cpu requires for bowtie while dehosting is 10 by default
+- **nf-core:MAG** input needs to be on quotes when specifying path 'PATH/FASTQ_FILES'
+- Minimum cpu requires for bowtie while de-hosting is 10 by default
 
 ```sh
 # install dependencies for mag pipeline
@@ -198,22 +195,6 @@ nextflow run nf-core/mag -r 2.3.0 \
 
 - Requires a pretty specific sample sheet with the following columns `sample,run_name_accession,platform(ILLUMINA),fastq_1,fastq_2,fasta`
 - I create it for now manually, and if necessary will build a python script to make it automatically ([Useful base script](https://github.com/nf-core/rnaseq/blob/master/bin/fastq_dir_to_samplesheet.py))
-
-```sh
-KRAKEN2_DB="/home/mdprieto/object_database/kraken2/k2_standard_20221209.tar.gz"
-
-# clean and obtain path files
-readlink -f raw_data/cf_data/fastq/* | \
-    grep "_1.fastq.gz" | \
-    sort
-
-# get sample_run accession cleaned
-readlink -f raw_data/cf_data/fastq/* | \
-    grep "_1.fastq.gz" `# sort here to maintain order with paths` | \
-    sort | \
-    grep -Eo "SRR[0-9]*" 
-```
-
 - To run, most options are opt-in. For now, I will explore only a few samples and try to produce results exclusively with Kraken2
 
 ```sh
@@ -240,7 +221,9 @@ nextflow run nf-core/taxprofiler -r 1.0.0 \
 
 - Multiple errors while working with bracken and kraken databases, they seem to be the same name and path, so I will duplicate them. It is a pretty resource intensive process as the file is more than 48 GB.
 
-### 20230808
+### 20230808 - Restarting to troubleshoot the taxprofiler pipeline
 
-- Preparation for nf-taxprofiler includes defining the `sample_sheet.csv`, `database.csv` as well as putting the Bowtie2 index for human samples inside the folder with the reference genome
+- Preparation for nf-taxprofiler includes defining the `sample_sheet.csv` and `database.csv` as well as putting the Bowtie2 index for human samples inside the folder with the reference genome
+  - To improve efficiency, I uncompress(untar) the **Kraken/Bracken database** so the pipeline does not have to do it for every run
 - Created snippet for `sample_sheet.csv` creation
+- After setting up the required databases and correcting specification of PATHs for eagle, the pipeline is working. I created a `custom.config` to specify resources available in the Eagle HPC and minimize the burden for other lab members.
