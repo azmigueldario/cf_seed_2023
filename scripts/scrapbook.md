@@ -1,6 +1,6 @@
-## Nextflow
+# Useful snippets
 
-If necessary to prepare all dependencies for nf-core pipeline
+## Prepare nf-core pipeline dependencies
 
 ```sh
 nf-core download fetchngs \
@@ -9,7 +9,7 @@ nf-core download fetchngs \
     --singularity-cache-only
 ```
 
-Quick job submission
+## Quick job submission
 
 ```sh
 #!/bin/bash                                 
@@ -24,7 +24,7 @@ cp /project/cidgoh-object-storage/database/kraken2/k2_standard_20221209.tar.gz /
 
 ```
 
-Create sample sheet for taxprofiler pipeline
+## Create sample sheet for taxprofiler pipeline
 
 ```sh
 <<'MODEL_DATA'
@@ -34,19 +34,43 @@ sample,run_accession,instrument_platform,fastq_1,fastq_2,fasta
 2612,run3,ILLUMINA,2612_run3_R1.fq.gz,2612_run3_R2.fq.gz,
 MODEL_DATA
 
-# add headers
-echo "sample,run_accession,instrument_platform,fastq_1,fastq_2,fasta" > test_samplesheet.csv
-
-for read1 in $(ls /project/60006/mdprieto/raw_data/cf_seed/cf_data/fastq/*_1.fastq.gz | head);
+###### NCFB #####
+    # add headers
+echo "sample,run_accession,instrument_platform,fastq_1,fastq_2,fasta" > full_taxprof_ncfb.csv
+for read1 in $(ls /project/60006/mdprieto/raw_data/cf_seed/cf_data/fastq/*_1.fastq.gz);
     do 
         # get the basename of file and remove suffix 
-    sample_run=$(echo $read1 | xargs -n 1 basename -s '_1.fastq.gz' | grep -Eo "SRR[0-9]*")
+    sample=$(echo $read1 | xargs -n 1 basename -s '_1.fastq.gz' | grep -Eo "SRR[0-9]*")
         # use REGEX to get the sample name and accession
-    sample_acc=$(echo $read1 | xargs -n 1 basename -s '_1.fastq.gz' | grep -Eo "SRX[0-9]*")
+    sample_acc=$(echo $read1 | xargs -n 1 basename -s '_1.fastq.gz')
         # replace string '_1' for '_2'
     read2="${read1/_1/_2}"
         # write in a new line for each sample
-    echo $sample_run,$sample_acc,ILLUMINA,$read1,$read2 # >> input_samplesheet.csv
+    echo $sample,$sample_acc,ILLUMINA,$read1,$read2, >> full_taxprof_ncfb.csv
+    done
+
+###### CF ##### 
+    # add headers
+echo "sample,run_accession,instrument_platform,fastq_1,fastq_2,fasta" > full_taxprof_cf.csv
+    # define iteration index
+ITER=0
+    # for loop to add variables    
+for read1 in $(ls /project/60006/mdprieto/raw_data/cf_seed/cf_data/fastq/*_1.fastq.gz);
+    do 
+        # add one to iteration index
+    ((ITER++)) 
+        # get the basename of file and remove suffix 
+    sample="sample_${ITER}"
+        # use REGEX to get the sample name and accession
+    sample_acc=$(echo $read1 | xargs -n 1 basename -s '_1.fastq.gz')
+        # replace string '_1' for '_2'
+    read2="${read1/_1/_2}"
+        # write in a new line for each sample
+    echo $sample,$sample_acc,ILLUMINA,$read1,$read2, >> full_taxprof_cf.csv
     done
     
+```
+
+```sh
+K2DB="~/scratch/nf_work_cache/1c/454b04c702bc27a015c9b5a9611d02"
 ```

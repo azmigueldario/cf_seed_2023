@@ -1,9 +1,8 @@
 #!/bin/bash                                 
-#SBATCH --mem-per-cpu=6G                 
-#SBATCH --ntasks=1
-#SBATCH --time=04:30:00                             
+#SBATCH --mem-per-cpu=6G
+#SBATCH --time=24:30:00                             
 #SBATCH --cpus-per-task=2                         
-#SBATCH --job-name="pilot_slurm_taxprof_cf"            
+#SBATCH --job-name="slurm_taxprof_cf_full"            
 #SBATCH --chdir=/scratch/mdprieto/                  
 #SBATCH --output=jobs_output/%x_%j.out  
 
@@ -13,7 +12,7 @@
 module load apptainer nextflow
 
 # ENV variables
-SAMPLE_SHEET_CF="/project/60006/mdprieto/cf_seed_2023/processed_data/pilot_taxprof.csv"
+SAMPLE_SHEET_CF="/project/60006/mdprieto/cf_seed_2023/processed_data/full_taxprof_cf.csv"
 DB_CSV="/project/60006/mdprieto/cf_seed_2023/processed_data/databases_taxprof.csv"
 HUMAN_REFGENOME="/mnt/cidgoh-object-storage/database/reference_genomes/human/GRCh38.p14/GCF_000001405.40"
 CUSTOM_CONFIG="/project/60006/mdprieto/cf_seed_2023/scripts/eagle.config"
@@ -24,7 +23,7 @@ nextflow run nf-core/taxprofiler -r 1.0.1 \
     -profile singularity \
     -resume \
     -c $CUSTOM_CONFIG \
-    --work-dir /project/60006/mdprieto/nf_work_project \
+    -work-dir /project/60006/mdprieto/nf_work_project \
     --input  $SAMPLE_SHEET_CF \
     --databases $DB_CSV \
     --outdir /scratch/mdprieto/results/cf_seed/taxprof_cf \
