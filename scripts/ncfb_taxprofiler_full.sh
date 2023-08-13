@@ -1,37 +1,39 @@
 #!/bin/bash                                 
-#SBATCH --ntasks=2
-#SBATCH --nodes=2
-#SBATCH --mem-per-cpu=10G                           # GB of memory per cpu core - max 120GBper node
-#SBATCH --time=1:30:00                             # walltime
-#SBATCH --cpus-per-task=10                           # CPU cores per task (multithread) - Max 8 
-#SBATCH --job-name="taxprof_pipeline_ncfb"              # job_name (optional)
-#SBATCH --chdir=/scratch/mdprieto/                  # change directory before executing optional)
-#SBATCH --output=./jobs_output/cfseed_taxprof_ncfb.out      
+#SBATCH --mem-per-cpu=6G
+#SBATCH --time=24:30:00                             
+#SBATCH --cpus-per-task=2                         
+#SBATCH --job-name="ncfb_full_taxprof"            
+#SBATCH --chdir=/scratch/mdprieto/                  
+#SBATCH --output=jobs_output/%x_%j.out  
 
-######################################################################################################
+###################################  setup  #######################################################
 
 # load modules
-module load singularity nextflow
+module load apptainer nextflow
 
 # ENV variables
+SAMPLE_SHEET="/project/60006/mdprieto/cf_seed_2023/processed_data/full_taxprof_ncfb.csv" `#make sure to use NCFB sample sheet`
+DB_CSV="/project/60006/mdprieto/cf_seed_2023/processed_data/databases_taxprof.csv"
+HUMAN_REFGENOME="/mnt/cidgoh-object-storage/database/reference_genomes/human/GRCh38.p14/GCF_000001405.40"
+EAGLE_CONFIG="/project/60006/mdprieto/cf_seed_2023/scripts/eagle.config"
 
-SAMPLE_SHEET="/project/60005/mdprieto/cf_seed_2023/scripts/samplesheet_taxprof_ncfb.csv"
-DB_CSV="/project/60005/mdprieto/cf_seed_2023/scripts/databases_taxprof.csv"
+################################### pipeline ###########################################
 
-
-# pipeline
-
-nextflow run nf-core/taxprofiler -r 1.0.0 \
+nextflow run nf-core/taxprofiler -r 1.0.1 \
     -profile singularity \
     -resume \
-    --input $SAMPLE_SHEET \
+    -c $EAGLE_CONFIG \
+    -work-dir /project/60006/mdprieto/nf_work_project \
+    --input  $SAMPLE_SHEET \
     --databases $DB_CSV \
-    --outdir /scratch/mdprieto/cf_seed_results/taxprof \
+    --outdir /scratch/mdprieto/results/cf_seed/taxprof_cf \
     --perform_shortread_qc \
+    --perform_shortread_complexityfilter \
     --perform_shortread_hostremoval \
-    --hostremoval_reference /project/cidgoh-object-storage/database/reference_genomes/human/GRCh38.p14/GCF_000001405.40/GCF_000001405.40_GRCh38.p14_genomic.fna \
-    --shortread_hostremoval_index /project/cidgoh-object-storage/database/bowtie_GRCh38 \
+    --hostremoval_reference $HUMAN_REFGENOME \
+    --shortread_hostremoval_index $HUMAN_REFGENOME \
     --run_bracken \
     --run_kraken2 \
-    --max_cpus 10 \
-    --max_memory 95GB
+    --run_centrifuge \
+    --run_profile_standardisation 
+    

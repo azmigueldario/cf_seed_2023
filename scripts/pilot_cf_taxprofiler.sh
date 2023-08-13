@@ -38,4 +38,3 @@ nextflow run nf-core/taxprofiler -r 1.0.1 \
     --run_centrifuge \
     --run_profile_standardisation 
     
-    

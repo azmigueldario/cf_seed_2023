@@ -37,10 +37,15 @@ MODEL_DATA
 ###### NCFB #####
     # add headers
 echo "sample,run_accession,instrument_platform,fastq_1,fastq_2,fasta" > full_taxprof_ncfb.csv
-for read1 in $(ls /project/60006/mdprieto/raw_data/cf_seed/cf_data/fastq/*_1.fastq.gz);
+    # define iteration index
+ITER=0
+    # for loop to add variables    
+for read1 in $(ls /project/60006/mdprieto/raw_data/cf_seed/ncfb_data/fastq/*_1.fastq.gz);
     do 
+        # add one to iteration index
+    ((ITER++)) 
         # get the basename of file and remove suffix 
-    sample=$(echo $read1 | xargs -n 1 basename -s '_1.fastq.gz' | grep -Eo "SRR[0-9]*")
+    sample="sample_${ITER}"
         # use REGEX to get the sample name and accession
     sample_acc=$(echo $read1 | xargs -n 1 basename -s '_1.fastq.gz')
         # replace string '_1' for '_2'
