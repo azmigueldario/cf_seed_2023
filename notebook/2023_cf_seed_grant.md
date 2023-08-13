@@ -227,3 +227,9 @@ nextflow run nf-core/taxprofiler -r 1.0.0 \
   - To improve efficiency, I uncompress(untar) the **Kraken/Bracken database** so the pipeline does not have to do it for every run
 - Created snippet for `sample_sheet.csv` creation
 - After setting up the required databases and correcting specification of PATHs for eagle, the pipeline is working. I created a `custom.config` to specify resources available in the Eagle HPC and minimize the burden for other lab members.
+
+### 20230811 - Completed taxprofiler pipeline for NCFB and CF shotgun sample
+
+- Run CF data in taxprofiler using Slurm as executor over a couple of days.
+  - Had error in taxpasta module standardization due to poor quality sample (**cf_sample69**), not an issue with the pipeline apparently
+- Prepared and run a similar script for Shotgun MGS data in NCFB.
