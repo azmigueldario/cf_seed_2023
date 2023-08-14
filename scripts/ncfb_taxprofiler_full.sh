@@ -26,7 +26,7 @@ nextflow run nf-core/taxprofiler -r 1.0.1 \
     -work-dir /project/60006/mdprieto/nf_work_project \
     --input  $SAMPLE_SHEET \
     --databases $DB_CSV \
-    --outdir /scratch/mdprieto/results/cf_seed/taxprof_cf \
+    --outdir /scratch/mdprieto/results/cf_seed/taxprof_ncfb \
     --perform_shortread_qc \
     --perform_shortread_complexityfilter \
     --perform_shortread_hostremoval \

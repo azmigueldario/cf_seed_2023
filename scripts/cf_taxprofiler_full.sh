@@ -2,7 +2,7 @@
 #SBATCH --mem-per-cpu=6G
 #SBATCH --time=24:30:00                             
 #SBATCH --cpus-per-task=2                         
-#SBATCH --job-name="slurm_taxprof_cf_full"            
+#SBATCH --job-name="cf_taxprof_full"            
 #SBATCH --chdir=/scratch/mdprieto/                  
 #SBATCH --output=jobs_output/%x_%j.out  
 

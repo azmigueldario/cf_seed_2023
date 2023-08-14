@@ -44,9 +44,9 @@ for read1 in $(ls /project/60006/mdprieto/raw_data/cf_seed/ncfb_data/fastq/*_1.f
     do 
         # add one to iteration index
     ((ITER++)) 
+        # create sample name index, printf defines leading zeroes
+    sample="NCFB_$(printf "%03d" $ITER)"
         # get the basename of file and remove suffix 
-    sample="sample_${ITER}"
-        # use REGEX to get the sample name and accession
     sample_acc=$(echo $read1 | xargs -n 1 basename -s '_1.fastq.gz')
         # replace string '_1' for '_2'
     read2="${read1/_1/_2}"
@@ -64,9 +64,9 @@ for read1 in $(ls /project/60006/mdprieto/raw_data/cf_seed/cf_data/fastq/*_1.fas
     do 
         # add one to iteration index
     ((ITER++)) 
-        # get the basename of file and remove suffix 
-    sample="sample_${ITER}"
-        # use REGEX to get the sample name and accession
+        # create sample name index, printf defines leading zeroes
+    sample="CF_$(printf "%02d" $ITER)"
+        # get the basename of file and remove suffix
     sample_acc=$(echo $read1 | xargs -n 1 basename -s '_1.fastq.gz')
         # replace string '_1' for '_2'
     read2="${read1/_1/_2}"
