@@ -63,7 +63,7 @@ Temporary Items
 
 # Data directories
 raw_data
-results
+# results
 
 ###### NEXTFLOW #####
 #####################
