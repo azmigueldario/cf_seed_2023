@@ -90,7 +90,7 @@ SRA_IMG="/project/60005/cidgoh_share/singularity_imgs/sra-tools_3.0.0.sif"
 
 ### 20230317
 
-- Searched and selected a proper CF dataset for lung shotgun metagenomes
+- Searched and selected a proper CF dataset for lung shotgun metagenomesq
 - Cleaned design of laboratory notebook
 - Prepared accession list and metadata files in Github repo
 - Created, troubleshooted and ran script to download all raw data files
@@ -233,3 +233,12 @@ nextflow run nf-core/taxprofiler -r 1.0.0 \
 - Run CF data in taxprofiler using Slurm as executor over a couple of days.
   - Had error in taxpasta module standardization due to poor quality sample (**cf_sample69**), not an issue with the pipeline apparently
 - Prepared and run a similar script for Shotgun MGS data in NCFB.
+
+### 20230814 - Preparing downstream analysis of taxonomic classification
+
+- Updated container for `taxpasta` in taxprofiler to latest version to avoid errors in low complexity samples that do not add up to 100% in taxonomical classification of reads.
+- New script for downstream analysis describes organization of files required for R and preliminary steps
+- I also use the latest version of `taxpasta` to produce **biom** format files for import to R as required for processing using the `phyloseq` package
+- Some of the final results from taxprofiler were moved into the `/results` folder in the repository of the project
+  - Krona plots for taxonomic distribution in every sample
+  - Aggregated taxonomy classification of bracken
