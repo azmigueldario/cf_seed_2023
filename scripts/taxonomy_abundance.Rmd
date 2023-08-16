@@ -1,16 +1,27 @@
+---
+title: "Analysis of taxonomic abundance and diversity in lung microbiome"
+author: "MDP"
+date: "2023-08-16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
 # Analysis of taxonomic abundance and diversity in lung microbiome
 
 ## Objectives
 
-- Separate datasets into samples with _Pseduomonas_ spp. predominance or not
-- Define if predominance of  _Pseduomonas_ spp. in the microbiome of patients with Cystic Fibrosis(CF) and Non-Cystic fibrosis bronchiectasis (NCFB) affects the measures of diversity
+-   Separate datasets into samples with *Pseduomonas* spp. predominance or not
+-   Define if predominance of *Pseduomonas* spp. in the microbiome of patients with Cystic Fibrosis(CF) and Non-Cystic fibrosis bronchiectasis (NCFB) affects the measures of diversity
 
 ## Command line: preparation of files
 
 The structure of the project repository is described below. All paths are relative to the `/script` folder where this script is located. The /processed_data folder contains all required data for downstream analysis.
 
-```sh
-cf_seed_2023
+```{bash}
+.Rproject
 ├── notebook
 ├── processed_data
 │   └── accessions
@@ -22,12 +33,7 @@ cf_seed_2023
 
 After obtaining taxonomy classification using **nf-core** `taxprofiler_1.0.1` and `kraken2/bracken`, I use `taxpasta_v0.4.1` to produce **biom** files necessary for analysis using `Phyloseq` in `R`.
 
-```sh
-    # move files to results
-rsync -av --exclude "centrifuge" . ~/mdprieto_projects/cf_seed_2023/results
-find . -type d -not -iname "centrifuge" -exec cp -r '{}' '~/mdprieto_projects/cf_seed_2023/results{}' ';'
-
-
+```{bash}
   # taxpasta container is part of taxprofiler pipeline
 TAXPASTA_IMG="/mnt/cidgoh-object-storage/images/depot.galaxyproject.org-singularity-taxpasta-0.4.1--pyhdfd78af_0.img"
 
@@ -54,26 +60,9 @@ singularity exec $TAXPASTA_IMG taxpasta merge \
     --add-name \
     --add-rank \
     /scratch/mdprieto/results/cf_seed/taxprof_ncfb/bracken/k2_db/NCFB_*
-
-####################################################################################
-
-    # define PATH to singularity container
-TAXPASTA_IMG="/mnt/cidgoh-object-storage/images/depot.galaxyproject.org-singularity-taxpasta-0.4.1--pyhdfd78af_0.img"
-
-    # Create a .biom file for downstream analysis in R
-        # must call all available bracken output for CF/NCFB
-        # summarize at genus to facilitate downstream analysis
-singularity exec $TAXPASTA_IMG taxpasta merge \
-    --profiler bracken \
-    --output ../processed_data/bracken_cf.tsv \
-    --summarise-at genus \
-    --taxonomy /mnt/cidgoh-object-storage/database/kraken2/taxdump \
-    --add-name \
-    --add-rank \
-    /scratch/mdprieto/results/cf_seed/taxprof_cf/bracken/k2_db/CF_*
 ```
 
-```sh
+```{bash}
     # Download singularity image of kraken-biom tool if necessary 
 # singularity pull $$NXF_SINGULARITY_CACHEDIR/kraken-biom_1.2.0.sif https://depot.galaxyproject.org/singularity/kraken-biom%3A1.2.0--pyh5e36f6f_0
 
@@ -85,4 +74,39 @@ singularity exec /mnt/cidgoh-object-storage/images/kraken-biom_1.2.0.sif kraken-
 
     # loading R and dependencies
 module load StdEnv/2020 gcc/9.3.0 r/4.3.1
+```
+
+## Import data into R
+
+In case it is necessary, install the required packages.
+
+```{r packages preparation, eval = FALSE}
+# bioconductor
+if (!require("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+
+BiocManager::install("phyloseq")
+
+# base R
+required_packages <- c("ggplot2", "RColorBrewer", "patchwork")
+  # check if already installed
+not_installed <- 
+  required_packages[!(required_packages %in% installed.packages()[ , "Package"])]    
+  # install only ones that are needed
+if(length(not_installed)) install.packages(not_installed)    
+```
+
+Load all necessary libraries for analysis:
+
+```{r}
+library("phyloseq")
+library("ggplot2")
+library("RColorBrewer")
+library("patchwork")
+```
+
+Load **.biom** objects from taxonomic classification
+
+```{r}
+import_biom("../processed_data/bracken_cf.biom")
 ```
