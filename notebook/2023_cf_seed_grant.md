@@ -242,3 +242,36 @@ nextflow run nf-core/taxprofiler -r 1.0.0 \
 - Some of the final results from taxprofiler were moved into the `/results` folder in the repository of the project
   - Krona plots for taxonomic distribution in every sample
   - Aggregated taxonomy classification of bracken
+
+### 20230816 - Creating proper .biom files for phyloseq
+
+- I will modify the taxprofiler pipeline to produce kraken-style (all taxa assigned reads) output later
+  - Meanwhile I ran bracken manually for all files using the `kraken2` ouput of `taxprofiler`
+  - I classified down to **Genus** as this is the interest of the study and will limit read_length to 100
+- The output is used in `kraken-biom v1.2.0` (avoids errors) with options to produce `.json` formatted files 
+
+```sh
+# apply to both diseases
+for disease in {cf,ncfb}
+    do
+    # nested for loop to apply bracken to every file in the corresponding disease path
+    for report in $(ls /scratch/mdprieto/results/cf_seed/taxprof_${disease}/kraken2/k2_db/*)
+        do
+            # define naming prefix based on sample_id
+        SAMPLE=$(basename $report | sed -E 's/_SRX.*//')
+            # run bracken specifying level (-l) genus and read_length (-r) of 100
+            # option -w produces kraken style reports
+        singularity exec /mnt/cidgoh-object-storage/images/depot.galaxyproject.org-singularity-bracken-2.7--py39hc16433a_0.img bracken \
+          -d /mnt/cidgoh-object-storage/database/kraken2 \
+          -i $report \
+          -o /scratch/mdprieto/results/cf_seed/taxprof_${disease}/bracken/k2_reports/${SAMPLE}_to_delete \
+          -w /scratch/mdprieto/results/cf_seed/taxprof_${disease}/bracken/k2_reports/${SAMPLE}_report.txt \
+          -r 100 \
+          -l G \
+          -t 10
+        done
+    done
+
+# delete unnecessary output
+rm /scratch/mdprieto/results/cf_seed/taxprof_{cf,ncfb}/bracken/k2_reports/*_to_delete
+```
