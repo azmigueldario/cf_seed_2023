@@ -248,8 +248,9 @@ nextflow run nf-core/taxprofiler -r 1.0.0 \
 - I will modify the taxprofiler pipeline to produce kraken-style (all taxa assigned reads) output later
   - Meanwhile I ran bracken manually for all files using the `kraken2` ouput of `taxprofiler`
   - I classified down to **Genus** as this is the interest of the study and will limit read_length to 100
-- The output is used in `kraken-biom v1.2.0` (avoids errors) with options to produce `.json` formatted files 
-
+- The output is used in `kraken-biom v1.2.0` (avoids errors) with options to produce `.json` formatted files
+  - Succesfully imported to R
+ 
 ```sh
 # apply to both diseases
 for disease in {cf,ncfb}

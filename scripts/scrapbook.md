@@ -111,13 +111,12 @@ We now use `kraken-biom v1.2.0` to produce **.biom** files to export in r
 cd /project/60006/mdprieto/cf_seed_2023/processed_data
 for disease in {cf,ncfb}
     do 
-    echo singularity exec /mnt/cidgoh-object-storage/images/kraken-biom_1.2.0.sif kraken-biom \
+    singularity exec /mnt/cidgoh-object-storage/images/kraken-biom_1.2.0.sif kraken-biom \
         --fmt json \
         --min G \
-        -o ${disease}_kraken_biom.biom \
+        -o ${disease}_bracken.biom \
         /scratch/mdprieto/results/cf_seed/taxprof_${disease}/bracken/k2_reports/* 
-        echo
-        echo
+
     done
 
 
