@@ -76,6 +76,80 @@ for read1 in $(ls /project/60006/mdprieto/raw_data/cf_seed/cf_data/fastq/*_1.fas
     
 ```
 
+## Creating an appropriate .biom file
+
+First, we create kraken style reports in bracken as a requisite for the `kraken-biom` tool
+
 ```sh
-K2DB="~/scratch/nf_work_cache/1c/454b04c702bc27a015c9b5a9611d02"
+# apply to both diseases
+for disease in {cf,ncfb}
+    do
+    # nested for loop to apply bracken to every file in the corresponding disease path
+    for report in $(ls /scratch/mdprieto/results/cf_seed/taxprof_${disease}/kraken2/k2_db/*)
+        do
+            # define naming prefix based on sample_id
+        SAMPLE=$(basename $report | sed -E 's/_SRX.*//')
+            # run bracken specifying 
+        singularity exec /mnt/cidgoh-object-storage/images/depot.galaxyproject.org-singularity-bracken-2.7--py39hc16433a_0.img bracken \
+            -d /mnt/cidgoh-object-storage/database/kraken2 \
+            -i $report \
+            -o /scratch/mdprieto/results/cf_seed/taxprof_${disease}/bracken/k2_reports/${SAMPLE}_to_delete \
+            -w /scratch/mdprieto/results/cf_seed/taxprof_${disease}/bracken/k2_reports/${SAMPLE}_report.txt \
+            -r 100 \
+            -l G \
+            -t 10
+        done
+    done
+
+# delete unnecessary output
+rm /scratch/mdprieto/results/cf_seed/taxprof_{cf,ncfb}/bracken/k2_reports/*_to_delete
+```
+
+We now use `kraken-biom v1.2.0` to produce **.biom** files to export in r
+
+```sh
+cd /project/60006/mdprieto/cf_seed_2023/processed_data
+for disease in {cf,ncfb}
+    do 
+    echo singularity exec /mnt/cidgoh-object-storage/images/kraken-biom_1.2.0.sif kraken-biom \
+        --fmt json \
+        --min G \
+        -o ${disease}_kraken_biom.biom \
+        /scratch/mdprieto/results/cf_seed/taxprof_${disease}/bracken/k2_reports/* 
+        echo
+        echo
+    done
+
+
+
+
+    # Biom no added name/rank data
+TAXPASTA_IMG="/mnt/cidgoh-object-storage/images/depot.galaxyproject.org-singularity-taxpasta-0.4.1--pyhdfd78af_0.img"
+singularity exec $TAXPASTA_IMG taxpasta merge \
+    --profiler bracken \
+    --output ncfb_bracken.biom \
+    --summarise-at genus \
+    --output-format biom \
+    --taxonomy /mnt/cidgoh-object-storage/database/kraken2/taxdump \
+    --add-lineage \
+    /scratch/mdprieto/results/cf_seed/taxprof_ncfb/bracken/k2_db/NCFB_*
+    
+    # same for CF
+TAXPASTA_IMG="/mnt/cidgoh-object-storage/images/depot.galaxyproject.org-singularity-taxpasta-0.4.1--pyhdfd78af_0.img"
+singularity exec $TAXPASTA_IMG taxpasta merge \
+    --profiler bracken \
+    --output cf_bracken.biom \
+    --summarise-at genus \
+    --output-format biom \
+    --taxonomy /mnt/cidgoh-object-storage/database/kraken2/taxdump \
+    --add-lineage \
+    /scratch/mdprieto/results/cf_seed/taxprof_cf/bracken/k2_db/NCFB_*
+    
+    # using kraken-biom tool
+singularity exec /mnt/cidgoh-object-storage/images/kraken-biom_1.2.0.sif kraken-biom \
+    --fmt json \
+    --max S \
+    -o kraken_biom.biom \
+    /scratch/mdprieto/results/cf_seed/taxprof_cf/kraken2/k2_db/*
+    
 ```
