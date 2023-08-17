@@ -110,27 +110,29 @@ Load **.biom** objects from taxonomic classification
 
 ```{r}
   # file created with taxpasta rank/name does not work
-import_biom("processed_data/bracken_cf.biom")
+import_biom("processed_data/bracken_cf.biom", parseFunction=parse_taxonomy_default)
   # taxpasta simplified
-import_biom("processed_data/bracken_ncfb_simplified.biom")
+import_biom("processed_data/bracken_ncfb_simplified.biom", parseFunction=parse_taxonomy_default)
   # created with kraken-biom
-import_biom("processed_data/bracken_cf_kraken_biom.biom")
+import_biom("processed_data/kraken_biom.biom")
   # using otu_table()
 otu_table("processed_data/bracken_ncfb_simplified.biom")
   # use read_biom
+read_biom("processed_data/bracken_ncfb_simplified.biom")
 ```
 
 ```{r}
-  # otu_table
+  # matrix with CF abundance
 cf_matrix <- 
   read_tsv("results/tax_cf/CF_bracken_k2_db.tsv") |>
-  column_to_rownames(var = "taxonomy_id") |>
+  # column_to_rownames(var = "taxonomy_id") |>
   head()
 
-cf_matrix[,c(-1:-3)]
+  # abundance phyloseq object for CF data
+OTU <- otu_table(cf_matrix [,c(-1:-3)], taxa_are_rows = TRUE)
+taxa_names(cf_matrix[[1]])
 
 
-otu_table(cf_matrix[,c(-1:-3)], taxa_are_rows = TRUE)
 otu_table("results/tax_cf/CF_bracken_k2_db.tsv", taxa_are_rows, errorIfNULL = TRUE)
 ```
 
