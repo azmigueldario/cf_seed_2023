@@ -50,7 +50,7 @@ for disease in {cf,ncfb}
     done
 ```
 
-### Import data into R
+### Prepare working environment
 
 In case it is necessary, install the required packages.
 
@@ -62,7 +62,8 @@ if (!require("BiocManager", quietly = TRUE))
 BiocManager::install("phyloseq")
 
 # ------- base R
-req_packages <- c("ggplot2", "RColorBrewer", "patchwork","tidyverse")
+req_packages <- c("ggplot2", "RColorBrewer", "patchwork",
+                  "tidyverse", "flextable")
   # check if already installed
 not_installed <- req_packages[!(req_packages %in% installed.packages()[ , "Package"])]    
   # install only ones that are needed
@@ -76,13 +77,22 @@ req_packages <- c("ggplot2", "RColorBrewer", "patchwork","tidyverse","phyloseq")
 lapply(req_packages, require, character.only = TRUE)
 ```
 
+### Load phyloseq objects and standardize them
+
 Load **.biom** objects from `Bracken` taxonomic classification.
 
 ```{r Import .biom files}
 # ------- import CF and NCFB biom files
 cf_phyloseq <- import_biom("processed_data/cf_bracken.biom")
 ncfb_phyloseq <- import_biom("processed_data/ncfb_bracken.biom")
+```
 
+Now, we do a few steps to normalize the data by adding proper rank names, changing 
+the sample names to match the ones used in taxonomic summary, normalizing 
+the abundance according to sequencing depth, excluding taxa with low abundance 
+(increases variance), and calculating the relative abundance of each taxa.
+
+```{r}
 # ------- adjust names to match tsv file
 sample_names(cf_phyloseq) <- sub("_report", "", sample_names(cf_phyloseq))
 sample_names(ncfb_phyloseq) <- sub("_report", "", sample_names(ncfb_phyloseq))
@@ -94,7 +104,26 @@ colnames(tax_table(cf_phyloseq)) <- c("kingdom", "phylum", "clade", "order", "fa
   # NCFB phyloseq object
 tax_table(ncfb_phyloseq) <- tax_table(ncfb_phyloseq) %>% sub("[a-z]__", "", .)
 colnames(tax_table(ncfb_phyloseq)) <- c("kingdom", "phylum", "clade", "order", "family", "genus", "species")
+
+# ------- adjust to sequencing depth
+  # CF
+total = median(sample_sums(cf_phyloseq))
+cf_phyloseq = transform_sample_counts(cf_phyloseq, function(x, t=total) round(t * (x / sum(x))))
+  # NCFB
+total = median(sample_sums(cf_phyloseq))
+ncfb_phyloseq = transform_sample_counts(ncfb_phyloseq, function(x, t=total) round(t * (x / sum(x))))
+
+# ------- remove low abundance taxa
+  # eliminate taxa with poor representation
+cf_phyloseq = filter_taxa(cf_phyloseq, function(x) sum(x > 3) > (0.2*length(x)), TRUE)
+ncfb_phyloseq = filter_taxa(ncfb_phyloseq, function(x) sum(x > 3) > (0.2*length(x)), TRUE)
+
+# ------- relative abundances
+#cf_phyloseq <- transform_sample_counts(cf_phyloseq, function(OTU) OTU/sum(OTU) )
+#ncfb_phyloseq <- transform_sample_counts(ncfb_phyloseq, function(OTU) OTU/sum(OTU))
 ```
+
+### Import taxonomic summary table
 
 Also import taxonomic classification summary, as it will be used to classify the samples where *Pseudomonas* spp. is the most abundant bacteria.
 
@@ -154,12 +183,15 @@ ncfb_summary_tsv <-
                values_to = "assigned_reads") 
   
 # ------- add relative abundances
+  # remove human reads, poor de-hosting
 ncfb_summary_tsv <- 
   ncfb_summary_tsv |> 
+  dplyr::filter(!grepl("omo sapiens", name)) |> 
   group_by(sample_id) |> 
   mutate(relative_abundance = assigned_reads / sum (assigned_reads))
 
 # ------- define predominance of Pseudomonas
+  # remove human reads, apparently poor de-hosting
 ncfb_pseudomonas <- 
   ncfb_summary_tsv |> 
   group_by(sample_id) |> 
@@ -177,22 +209,100 @@ the old phyloseq objects to keep our workspace tidy.
 
 ```{r}
 # ------- CF
-cf_predominance_pseu <- subset_samples(cf_phyloseq, sample_names(cf_phyloseq) %in% cf_pseudomonas)  
-cf_predominance_other <- subset_samples(cf_phyloseq, !sample_names(cf_phyloseq) %in% cf_pseudomonas)
+cf_predominance_pseu <- subset_samples(cf_phyloseq, 
+                                       sample_names(cf_phyloseq) %in% cf_pseudomonas)  
+cf_predominance_other <- subset_samples(cf_phyloseq, 
+                                        !sample_names(cf_phyloseq) %in% cf_pseudomonas)
 
 # ------- NCFB
-ncfb_predominance_pseu <- subset_samples(ncfb_phyloseq, sample_names(ncfb_phyloseq) %in% ncfb_pseudomonas)  
-ncfb_predominance_other <- subset_samples(ncfb_phyloseq, !sample_names(ncfb_phyloseq) %in% ncfb_pseudomonas)
+ncfb_predominance_pseu <- subset_samples(ncfb_phyloseq,
+                                         sample_names(ncfb_phyloseq) %in% ncfb_pseudomonas)  
+ncfb_predominance_other <- subset_samples(ncfb_phyloseq, 
+                                          !sample_names(ncfb_phyloseq) %in% ncfb_pseudomonas)
 
   # remove taxa summaries and subsetting vectors
-rm(cf_summary_tsv, ncfb_summary_tsv, ncfb_pseudomonas, cf_pseudomonas)
+# rm(cf_summary_tsv, ncfb_summary_tsv, ncfb_pseudomonas, cf_pseudomonas)
 ```
 
 ## Calculate diversity measures according to predominance group
 
 ### CF
 
+### NCFB
+
 ```{r}
+ncfb_predominance_pseu %>% 
+  tax_glom("family") %>%  
+  plot_bar(fill = "order",
+           title="NCFB with _Pseudomonas_ spp. predominance")
+
+```
+
+Estimate richness and alpha diversity
+
+```{r}
+  # CF
+estimate_richness(cf_predominance_pseu,
+                  measures=c("Observed", "InvSimpson", "Shannon", "Chao1")) |> 
+  summarise(mean_Chao1 = round(mean(Chao1), 2),
+            mean_simpson = round(mean(InvSimpson), 2),
+            mean_Shannon = round(mean(Shannon), 2)) |> 
+  flextable::flextable()
+estimate_richness(cf_predominance_other,
+                  measures=c("Observed", "InvSimpson", "Shannon", "Chao1")) |> 
+  summarise(mean_Chao1 = round(mean(Chao1), 2),
+            mean_simpson = round(mean(InvSimpson), 2),
+            mean_Shannon = round(mean(Shannon), 2)) |> 
+  flextable::flextable()
+  # NCFB
+estimate_richness(ncfb_predominance_pseu, 
+                  measures=c("Observed", "InvSimpson", "Shannon", "Chao1")) |> 
+  summarise(mean_Chao1 = round(mean(Chao1), 2),
+            mean_simpson = round(mean(InvSimpson), 2),
+            mean_Shannon = round(mean(Shannon), 2)) |> 
+  flextable::flextable()
+estimate_richness(ncfb_predominance_other,
+                  measures=c("Observed", "InvSimpson", "Shannon", "Chao1")) |> 
+  summarise(mean_Chao1 = round(mean(Chao1), 2),
+            mean_simpson = round(mean(InvSimpson), 2),
+            mean_Shannon = round(mean(Shannon), 2)) |> 
+  flextable::flextable()
+
+```
+
+
+```{r}
+  # CF pseudomonas
+plot_richness(cf_predominance_pseu, color = factor("red"),
+             measures = c("Chao1", "Shannon")) +
+scale_colour_manual(values = c("red")) +
+theme_light() + 
+theme(axis.text.x = element_blank(),
+      legend.position = "none")
+
+  # CF other
+plot_richness(cf_predominance_other, color = factor("red"),
+             measures = c("Chao1", "Shannon")) +
+scale_colour_manual(values = c("blue")) +
+theme_light() + 
+theme(axis.text.x = element_blank(),
+      legend.position = "none")
+
+  # NCFB pseudomonas
+plot_richness(ncfb_predominance_pseu, color = factor("red"),
+             measures = c("Chao1", "Shannon")) +
+scale_colour_manual(values = c("red")) +
+theme_light() + 
+theme(axis.text.x = element_blank(),
+      legend.position = "none")
+
+  # NCFB other
+plot_richness(ncfb_predominance_other, color = factor("red"),
+             measures = c("Chao1", "Shannon")) +
+scale_colour_manual(values = c("blue")) +
+theme_light() + 
+theme(axis.text.x = element_blank(),
+      legend.position = "none")
 
 ```
 
