@@ -16,11 +16,13 @@ knitr::opts_chunk$set(echo = TRUE)
 -   Separate datasets into samples with *Pseduomonas* spp. predominance or not
 -   Define if predominance of *Pseduomonas* spp. in the microbiome of patients with Cystic Fibrosis(CF) and Non-Cystic fibrosis bronchiectasis (NCFB) affects the measures of diversity
 
-## Command line: preparation of files
+## Preparation
+
+### Command line: create summary files of taxonomy
 
 The structure of the project repository is described below. All paths are relative to the `/script` folder where this script is located. The /processed_data folder contains all required data for downstream analysis.
 
-```{bash}
+```{bash Project dir structure, eval = FALSE}
 .Rproject
 ├── notebook
 ├── processed_data
@@ -31,108 +33,276 @@ The structure of the project repository is described below. All paths are relati
 └── scripts
 ```
 
-After obtaining taxonomy classification using **nf-core** `taxprofiler_1.0.1` and `kraken2/bracken`, I use `taxpasta_v0.4.1` to produce **biom** files necessary for analysis using `Phyloseq` in `R`.
+After obtaining taxonomy classification using **nf-core** `taxprofiler_1.0.1` and `kraken2/bracken`, I use `kraken-biom_v1.2.0` to produce **biom** files necessary for analysis using `Phyloseq` in `R`.
 
-```{bash}
+```{bash Prepare .biom file, eval = FALSE}
+  # starting at the root directory of repo
+cd processed_data
+
   # taxpasta container is part of taxprofiler pipeline
-TAXPASTA_IMG="/mnt/cidgoh-object-storage/images/depot.galaxyproject.org-singularity-taxpasta-0.4.1--pyhdfd78af_0.img"
-
-    # Create a .biom file for downstream analysis in R
-        # must call all available bracken output for CF/NCFB
-        # summarize at genus to facilitate downstream analysis
-singularity exec $TAXPASTA_IMG taxpasta merge \
-    --profiler bracken \
-    --output bracken_cf.biom \
-    --summarise-at genus \
-    --output-format BIOM \
-    --taxonomy /mnt/cidgoh-object-storage/database/kraken2/taxdump \
-    --add-name \
-    --add-rank \
-    /scratch/mdprieto/results/cf_seed/taxprof_cf/bracken/k2_db/CF_*
-    
-    # Repeat for NCFB data
-singularity exec $TAXPASTA_IMG taxpasta merge \
-    --profiler bracken \
-    --output bracken_ncfb.biom \
-    --summarise-at genus \
-    --output-format BIOM \
-    --taxonomy /mnt/cidgoh-object-storage/database/kraken2/taxdump \
-    --add-name \
-    --add-rank \
-    /scratch/mdprieto/results/cf_seed/taxprof_ncfb/bracken/k2_db/NCFB_*
+for disease in {cf,ncfb}
+    do 
+    singularity exec $NXF_SINGULARITY_CACHE/kraken-biom_1.2.0.sif kraken-biom \
+        --fmt json \
+        --min G \
+        -o ${disease}_kraken.biom \
+        /scratch/mdprieto/results/cf_seed/taxprof_${disease}/bracken/k2_reports/* 
+    done
 ```
 
-```{bash}
-    # Download singularity image of kraken-biom tool if necessary 
-# singularity pull $$NXF_SINGULARITY_CACHEDIR/kraken-biom_1.2.0.sif https://depot.galaxyproject.org/singularity/kraken-biom%3A1.2.0--pyh5e36f6f_0
-
-    # command to create biom file
-singularity exec /mnt/cidgoh-object-storage/images/kraken-biom_1.2.0.sif kraken-biom \
-    -k ../results/bracken_cf_combined.txt \
-    --max S \
-    -o /project/60006/mdprieto/cf_seed_2023/processed_data/bracken_cf.biom
-
-    # loading R and dependencies
-module load StdEnv/2020 gcc/9.3.0 r/4.3.1
-```
-
-## Import data into R
+### Prepare working environment
 
 In case it is necessary, install the required packages.
 
-```{r packages preparation, eval = FALSE}
-# bioconductor
+```{r Packages install, eval = FALSE}
+# ------- bioconductor
 if (!require("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
 
 BiocManager::install("phyloseq")
 
-# base R
-required_packages <- c("ggplot2", "RColorBrewer", "patchwork","tidyverse")
+# ------- base R
+req_packages <- c("ggplot2", "RColorBrewer", "patchwork",
+                  "tidyverse", "flextable")
   # check if already installed
-not_installed <- 
-  required_packages[!(required_packages %in% installed.packages()[ , "Package"])]    
+not_installed <- req_packages[!(req_packages %in% installed.packages()[ , "Package"])]    
   # install only ones that are needed
 if(length(not_installed)) install.packages(not_installed)    
 ```
 
 Load all necessary libraries for analysis:
 
-```{r}
-library("phyloseq")
-library("ggplot2")
-library("RColorBrewer")
-library("patchwork")
-library("tidyverse")
-``` 
-
-Load **.biom** objects from taxonomic classification
-
-```{r}
-  # file created with taxpasta rank/name does not work
-import_biom("processed_data/bracken_cf.biom", parseFunction=parse_taxonomy_default)
-  # taxpasta simplified
-import_biom("processed_data/bracken_ncfb_simplified.biom", parseFunction=parse_taxonomy_default)
-  # created with kraken-biom
-import_biom("processed_data/kraken_biom.biom")
-  # using otu_table()
-otu_table("processed_data/bracken_ncfb_simplified.biom")
-  # use read_biom
-read_biom("processed_data/bracken_ncfb_simplified.biom")
+```{r Load packages, message = FALSE}
+req_packages <- c("ggplot2", "RColorBrewer", "patchwork","tidyverse","phyloseq")
+lapply(req_packages, require, character.only = TRUE)
 ```
 
+### Load phyloseq objects and standardize them
+
+Load **.biom** objects from `Bracken` taxonomic classification.
+
+```{r Import .biom files}
+# ------- import CF and NCFB biom files
+cf_phyloseq <- import_biom("processed_data/cf_bracken.biom")
+ncfb_phyloseq <- import_biom("processed_data/ncfb_bracken.biom")
+```
+
+Now, we do a few steps to normalize the data by adding proper rank names, changing 
+the sample names to match the ones used in taxonomic summary, normalizing 
+the abundance according to sequencing depth, excluding taxa with low abundance 
+(increases variance), and calculating the relative abundance of each taxa.
+
 ```{r}
-  # matrix with CF abundance
-cf_matrix <- 
-  read_tsv("results/tax_cf/CF_bracken_k2_db.tsv") |>
-  # column_to_rownames(var = "taxonomy_id") |>
-  head()
+# ------- adjust names to match tsv file
+sample_names(cf_phyloseq) <- sub("_report", "", sample_names(cf_phyloseq))
+sample_names(ncfb_phyloseq) <- sub("_report", "", sample_names(ncfb_phyloseq))
 
-  # abundance phyloseq object for CF data
-OTU <- otu_table(cf_matrix [,c(-1:-3)], taxa_are_rows = TRUE)
-taxa_names(cf_matrix[[1]])
+# ------- clean taxonomy table
+  # CF phyloseq object
+tax_table(cf_phyloseq) <- tax_table(cf_phyloseq) %>% sub("[a-z]__", "", .)
+colnames(tax_table(cf_phyloseq)) <- c("kingdom", "phylum", "clade", "order", "family", "genus", "species")
+  # NCFB phyloseq object
+tax_table(ncfb_phyloseq) <- tax_table(ncfb_phyloseq) %>% sub("[a-z]__", "", .)
+colnames(tax_table(ncfb_phyloseq)) <- c("kingdom", "phylum", "clade", "order", "family", "genus", "species")
+
+# ------- adjust to sequencing depth
+  # CF
+total = median(sample_sums(cf_phyloseq))
+cf_phyloseq = transform_sample_counts(cf_phyloseq, function(x, t=total) round(t * (x / sum(x))))
+  # NCFB
+total = median(sample_sums(cf_phyloseq))
+ncfb_phyloseq = transform_sample_counts(ncfb_phyloseq, function(x, t=total) round(t * (x / sum(x))))
+
+# ------- remove low abundance taxa
+  # eliminate taxa with poor representation
+cf_phyloseq = filter_taxa(cf_phyloseq, function(x) sum(x > 3) > (0.2*length(x)), TRUE)
+ncfb_phyloseq = filter_taxa(ncfb_phyloseq, function(x) sum(x > 3) > (0.2*length(x)), TRUE)
+
+# ------- relative abundances
+#cf_phyloseq <- transform_sample_counts(cf_phyloseq, function(OTU) OTU/sum(OTU) )
+#ncfb_phyloseq <- transform_sample_counts(ncfb_phyloseq, function(OTU) OTU/sum(OTU))
+```
+
+### Import taxonomic summary table
+
+Also import taxonomic classification summary, as it will be used to classify the samples where *Pseudomonas* spp. is the most abundant bacteria.
+
+```{r Import taxonomic summaries}
+# ------- import taxonomic summary excluding unnecessary columns
+cf_summary_tsv <- read_tsv("results/tax_cf/CF_bracken_k2_db.tsv",
+                   col_select = c(-3, -4))
+ncfb_summary_tsv <- read_tsv("results/tax_ncfb/NCFB_bracken_k2_db.tsv",
+                     col_select = c(-3, -4))
+
+# ------- clean column names to reflect simple sample_id
+colnames(cf_summary_tsv) <- sub("_SR.*", "", colnames(cf_summary_tsv))
+colnames(ncfb_summary_tsv) <- sub("_SR.*", "", colnames(ncfb_summary_tsv))
+```
+
+## Predominance of *Pseudomonas* spp.
+
+To make it easier to analyze the data, I pivot the table to a **long format** where every line has only one value assigned to an identifier. Furthermore, I calculate the relative abundance of a **taxa** in a new column.
+
+Finally, I filter those cases where *Pseudomonas* spp. is the most abundant taxa in the microbiome and it represents more than 30% of the relative abundance.
+
+```{r Predominance of Pseu in CF}
+# ------- pivot to longer
+  # do not pivot taxa_id columns and keep sample_ids together
+cf_summary_tsv <- 
+  cf_summary_tsv |>
+  pivot_longer(cols = c(-1,-2),
+               cols_vary = "slowest",
+               names_to = "sample_id",
+               values_to = "assigned_reads") 
+  
+# ------- calculate relative abundance of each species by sample_id
+cf_summary_tsv <- 
+  cf_summary_tsv |> 
+  group_by(sample_id) |> 
+  mutate(relative_abundance = assigned_reads / sum (assigned_reads))
+
+# ------- define which samples have predominance of Pseudomonas
+cf_pseudomonas <- 
+  cf_summary_tsv |> 
+  group_by(sample_id) |> 
+  slice_max(n = 1,
+            order_by = relative_abundance) |> 
+  dplyr::filter(name == "Pseudomonas aeruginosa" & relative_abundance >= 0.3 ) |> 
+  pull(sample_id)
+```
+
+The same process is performed for samples from NCFB patients
+
+```{r Predominance of Pseu in NCFB}
+# ------- pivot to long
+ncfb_summary_tsv <- 
+  ncfb_summary_tsv |> 
+  pivot_longer(cols = c(-1,-2),
+               cols_vary = "slowest",
+               names_to = "sample_id",
+               values_to = "assigned_reads") 
+  
+# ------- add relative abundances
+  # remove human reads, poor de-hosting
+ncfb_summary_tsv <- 
+  ncfb_summary_tsv |> 
+  dplyr::filter(!grepl("omo sapiens", name)) |> 
+  group_by(sample_id) |> 
+  mutate(relative_abundance = assigned_reads / sum (assigned_reads))
+
+# ------- define predominance of Pseudomonas
+  # remove human reads, apparently poor de-hosting
+ncfb_pseudomonas <- 
+  ncfb_summary_tsv |> 
+  group_by(sample_id) |> 
+  slice_max(n = 1,
+            order_by = relative_abundance) |> 
+  dplyr::filter(name == "Pseudomonas aeruginosa" & relative_abundance >= 0.3 ) |> 
+  pull(sample_id)
+```
+
+## Separate samples according to *Pseudomonas* predominance
+
+We now use the vectors with samples that have predominance of _**Pseudomonas**_(pseu) 
+in each of the data-sets to create two subsets for disease. After that, we remove
+the old phyloseq objects to keep our workspace tidy.
+
+```{r}
+# ------- CF
+cf_predominance_pseu <- subset_samples(cf_phyloseq, 
+                                       sample_names(cf_phyloseq) %in% cf_pseudomonas)  
+cf_predominance_other <- subset_samples(cf_phyloseq, 
+                                        !sample_names(cf_phyloseq) %in% cf_pseudomonas)
+
+# ------- NCFB
+ncfb_predominance_pseu <- subset_samples(ncfb_phyloseq,
+                                         sample_names(ncfb_phyloseq) %in% ncfb_pseudomonas)  
+ncfb_predominance_other <- subset_samples(ncfb_phyloseq, 
+                                          !sample_names(ncfb_phyloseq) %in% ncfb_pseudomonas)
+
+  # remove taxa summaries and subsetting vectors
+# rm(cf_summary_tsv, ncfb_summary_tsv, ncfb_pseudomonas, cf_pseudomonas)
+```
+
+## Calculate diversity measures according to predominance group
+
+### CF
+
+### NCFB
+
+```{r}
+ncfb_predominance_pseu %>% 
+  tax_glom("family") %>%  
+  plot_bar(fill = "order",
+           title="NCFB with _Pseudomonas_ spp. predominance")
+
+```
+
+Estimate richness and alpha diversity
+
+```{r}
+  # CF
+estimate_richness(cf_predominance_pseu,
+                  measures=c("Observed", "InvSimpson", "Shannon", "Chao1")) |> 
+  summarise(mean_Chao1 = round(mean(Chao1), 2),
+            mean_simpson = round(mean(InvSimpson), 2),
+            mean_Shannon = round(mean(Shannon), 2)) |> 
+  flextable::flextable()
+estimate_richness(cf_predominance_other,
+                  measures=c("Observed", "InvSimpson", "Shannon", "Chao1")) |> 
+  summarise(mean_Chao1 = round(mean(Chao1), 2),
+            mean_simpson = round(mean(InvSimpson), 2),
+            mean_Shannon = round(mean(Shannon), 2)) |> 
+  flextable::flextable()
+  # NCFB
+estimate_richness(ncfb_predominance_pseu, 
+                  measures=c("Observed", "InvSimpson", "Shannon", "Chao1")) |> 
+  summarise(mean_Chao1 = round(mean(Chao1), 2),
+            mean_simpson = round(mean(InvSimpson), 2),
+            mean_Shannon = round(mean(Shannon), 2)) |> 
+  flextable::flextable()
+estimate_richness(ncfb_predominance_other,
+                  measures=c("Observed", "InvSimpson", "Shannon", "Chao1")) |> 
+  summarise(mean_Chao1 = round(mean(Chao1), 2),
+            mean_simpson = round(mean(InvSimpson), 2),
+            mean_Shannon = round(mean(Shannon), 2)) |> 
+  flextable::flextable()
+
+```
 
 
-otu_table("results/tax_cf/CF_bracken_k2_db.tsv", taxa_are_rows, errorIfNULL = TRUE)
+```{r}
+  # CF pseudomonas
+plot_richness(cf_predominance_pseu, color = factor("red"),
+             measures = c("Chao1", "Shannon")) +
+scale_colour_manual(values = c("red")) +
+theme_light() + 
+theme(axis.text.x = element_blank(),
+      legend.position = "none")
+
+  # CF other
+plot_richness(cf_predominance_other, color = factor("red"),
+             measures = c("Chao1", "Shannon")) +
+scale_colour_manual(values = c("blue")) +
+theme_light() + 
+theme(axis.text.x = element_blank(),
+      legend.position = "none")
+
+  # NCFB pseudomonas
+plot_richness(ncfb_predominance_pseu, color = factor("red"),
+             measures = c("Chao1", "Shannon")) +
+scale_colour_manual(values = c("red")) +
+theme_light() + 
+theme(axis.text.x = element_blank(),
+      legend.position = "none")
+
+  # NCFB other
+plot_richness(ncfb_predominance_other, color = factor("red"),
+             measures = c("Chao1", "Shannon")) +
+scale_colour_manual(values = c("blue")) +
+theme_light() + 
+theme(axis.text.x = element_blank(),
+      legend.position = "none")
+
 ```
 
