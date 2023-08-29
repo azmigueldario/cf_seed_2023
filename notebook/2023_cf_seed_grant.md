@@ -1,5 +1,10 @@
 # Metagenomics preliminary analysis for non-Cystic Fibrosis Bronchiectasis (NCFB) project
 
+## Feedback questions, to do afterwards
+
+- Does having a predominance of _Pseudomonas_ spp. reduces the diversity per-se, having only 70% of the sample left for diversity.
+  - I can see if other species also have the same effect on diversity; also try to reduce the threshold to see if the effect of predominance is sustained
+
 ## General information
 
 ### Rationale

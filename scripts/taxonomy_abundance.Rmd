@@ -23,7 +23,6 @@ knitr::opts_chunk$set(echo = TRUE)
 The structure of the project repository is described below. All paths are relative to the `/script` folder where this script is located. The /processed_data folder contains all required data for downstream analysis.
 
 ```{bash Project dir structure, eval = FALSE}
-
 ├── notebook
 ├── processed_data
 │   └── accessions
@@ -247,11 +246,10 @@ cf_rel_abundance %>%
 I now calculate alpha diversity measurement and from the resulting plot obtain the summarized estimates too
 
 ```{r CF alpha diversity violin plot}
-
 cf_alpha <- 
     # plots according to predominance
   plot_richness(cf_ps, x = "Predominance",
-              measures = c("Chao1", "Shannon", "InvSimpson")) +
+              measures = c("Chao1", "Shannon", "Simpson", "InvSimpson")) +
     # change to a violin plot
   geom_violin(aes(fill = Predominance)) +
     # manually define colors of violins
@@ -265,7 +263,6 @@ cf_alpha <-
   ggsignif::geom_signif(comparisons = list(c("P. aeruginosa", "Other")), 
                         map_signif_level = TRUE) ; cf_alpha
 ```
-
 
 Then, using the results from `plot_richness()` which also summarize the richness value for all samples, I create a table with the mean **alpha diversity measurements** and the resulting Wilcoxon p_value
 
@@ -291,13 +288,6 @@ cf_alpha$data |>
 The same analysis is repeated for the NCFB samples.
 
 ```{r NCFB alpha diversity plots}
-=======
-### NCFB
-
-The same analysis is repeated for the NCFB samples.
-
-```{r}
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 # ------- bar_plot of taxa relative abundances
 
 ncfb_rel_abundance %>% 
@@ -310,8 +300,8 @@ ncfb_rel_abundance %>%
 # ------- plot summary of alpha diversity measures
 
 ncfb_alpha <- 
-  plot_richness(cf_ps, x = "Predominance",
-              measures = c("Chao1", "Shannon", "InvSimpson")) +
+  plot_richness(ncfb_ps, x = "Predominance",
+              measures = c("Chao1", "Shannon", "InvSimpson", "Simpson")) +
   geom_violin(aes(fill = Predominance)) +
   scale_fill_manual(values = c("red3", "blue3")) +
   theme_light() +
