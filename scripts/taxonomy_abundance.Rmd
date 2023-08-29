@@ -23,10 +23,7 @@ knitr::opts_chunk$set(echo = TRUE)
 The structure of the project repository is described below. All paths are relative to the `/script` folder where this script is located. The /processed_data folder contains all required data for downstream analysis.
 
 ```{bash Project dir structure, eval = FALSE}
-<<<<<<< HEAD
-=======
-.Rproject
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
+
 ├── notebook
 ├── processed_data
 │   └── accessions
@@ -39,26 +36,7 @@ The structure of the project repository is described below. All paths are relati
 ```
 
 After obtaining taxonomy classification using **nf-core** `taxprofiler_1.0.1` and `kraken2/bracken`, I use `kraken-biom_v1.2.0` to produce **biom** files necessary for analysis using `Phyloseq` in `R`.
-<<<<<<< HEAD
 
-=======
-
-```{bash Prepare .biom file, eval = FALSE}
-  # starting at the root directory of repo
-cd processed_data
-
-  # taxpasta container is part of taxprofiler pipeline
-for disease in {cf,ncfb}
-    do 
-    singularity exec $NXF_SINGULARITY_CACHE/kraken-biom_1.2.0.sif kraken-biom \
-        --fmt json \
-        --min G \
-        -o ${disease}_kraken.biom \
-        /scratch/mdprieto/results/cf_seed/taxprof_${disease}/bracken/k2_reports/* 
-    done
-```
-
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 ### Prepare working environment
 
 In case it is necessary, install the required packages.
@@ -73,12 +51,7 @@ BiocManager::install("phyloseq")
 
 # ------- base R
 
-<<<<<<< HEAD
 packages <- c("ggsignif", "tidyverse", "flextable", "vegan")
-=======
-packages <- c("RColorBrewer", "ggsignif"
-              "tidyverse", "flextable")
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 
   # check if already installed
 not_installed <- packages[!(packages %in% installed.packages()[ , "Package"])]
@@ -90,30 +63,12 @@ if(length(not_installed)) install.packages(not_installed)
 Load all necessary libraries for analysis:
 
 ```{r Load packages, message = FALSE}
-<<<<<<< HEAD
-packages <- c("phyloseq", "tidyverse", "flextable", "ggsignif")
-=======
 packages <- c("RColorBrewer", "phyloseq", "tidyverse", "flextable", "ggsignif")
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 lapply(packages, require, character.only = TRUE)
 ```
 
 ### Load phyloseq objects and standardize them
 
-<<<<<<< HEAD
-Load **.biom** objects from `Bracken` taxonomic classification. Creates two `phyloseq` objects, one for each disease.
-
-```{r Import .biom files}
-cf_ps <- import_biom("../processed_data/cf_bracken.biom")
-ncfb_ps <- import_biom("../processed_data/ncfb_bracken.biom")
-```
-
-Now, we do a few steps to normalize the data by adding proper rank names, changing the sample names to match the ones used in taxonomic summary, normalizing the abundance according to sequencing depth, excluding taxa with low abundance (increases variance), and calculating the relative abundance of each taxa.
-
-To prevent biased quantification, our **Kraken 2** database also had reference sequences from humans. Thus, there was a secondary quality control in taxonomy classification where reads that were not removed in **Bowtie 2** de-hosting but still belong to humans are classified as such. Here, we can remove them so they do not affect our diversity measures.
-
-```{r Pre-processing of .biom files}
-=======
 Load **.biom** objects from `Bracken` taxonomic classification. Creates two 
 `phyloseq` objects, one for each disease.
 
@@ -128,7 +83,6 @@ the abundance according to sequencing depth, excluding taxa with low abundance
 (increases variance), and calculating the relative abundance of each taxa.
 
 ```{r}
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 # ------- adjust names to match tsv file
 
 sample_names(cf_ps) <- sub("_report", "", sample_names(cf_ps))
@@ -155,7 +109,6 @@ total = median(sample_sums(cf_ps))
 cf_ps = transform_sample_counts(cf_ps,
                                 function(x, t=total) round(t * (x / sum(x))))
   # NCFB
-<<<<<<< HEAD
 total = median(sample_sums(ncfb_ps))
 ncfb_ps = transform_sample_counts(ncfb_ps,
                                   function(x, t=total) round(t * (x / sum(x))))
@@ -166,19 +119,6 @@ rm(total)
 
 cf_ps <- subset_taxa(cf_ps, !Genus=="Homo")
 ncfb_ps <- subset_taxa(ncfb_ps, !Genus=="Homo")
-=======
-total = median(sample_sums(cf_ps))
-ncfb_ps = transform_sample_counts(ncfb_ps,
-                                  function(x, t=total) round(t * (x / sum(x))))
-
-# ------- remove low abundance taxa
-
-  # eliminate taxa with poor representation
-cf_ps = filter_taxa(cf_ps,
-                    function(x) sum(x > 3) > (0.2*length(x)), TRUE)
-ncfb_ps = filter_taxa(ncfb_ps,
-                      function(x) sum(x > 3) > (0.2*length(x)), TRUE)
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 ```
 
 ### Import taxonomic summary table
@@ -187,15 +127,9 @@ Also import taxonomic classification summary, as it will be used to classify the
 
 ```{r Import taxonomic summaries}
 # ------- import taxonomic summary excluding unnecessary columns
-<<<<<<< HEAD
 cf_summary_tsv <- read_tsv("../results/tax_cf/CF_bracken_k2_db.tsv",
                            col_select = c(-3, -4))
 ncfb_summary_tsv <- read_tsv("../results/tax_ncfb/NCFB_bracken_k2_db.tsv",
-=======
-cf_summary_tsv <- read_tsv("results/tax_cf/CF_bracken_k2_db.tsv",
-                           col_select = c(-3, -4))
-ncfb_summary_tsv <- read_tsv("results/tax_ncfb/NCFB_bracken_k2_db.tsv",
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
                              col_select = c(-3, -4))
 
 # ------- clean column names to reflect simple sample_id
@@ -204,19 +138,11 @@ colnames(cf_summary_tsv) <- sub(pattern = "_SR.*", replacement = "",
 colnames(ncfb_summary_tsv) <- sub("_SR.*", "", colnames(ncfb_summary_tsv))
 ```
 
-<<<<<<< HEAD
 ### Categorize predominance of *Pseudomonas* spp.
 
 To make it easier to analyze the data, I pivot the table to a **long format** where every line has only one value assigned to an identifier. Furthermore, I calculate the relative abundance of a **taxa** in a new column.
 
 ***Note:*** Finally, I filter those cases where *Pseudomonas* spp. is the most abundant taxa in the microbiome and it represents more than 30% of the relative abundance.
-=======
-## Predominance of *Pseudomonas* spp.
-
-To make it easier to analyze the data, I pivot the table to a **long format** where every line has only one value assigned to an identifier. Furthermore, I calculate the relative abundance of a **taxa** in a new column.
-
-Finally, I filter those cases where *Pseudomonas* spp. is the most abundant taxa in the microbiome and it represents more than 30% of the relative abundance.
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 
 ```{r Predominance of Pseu in CF}
 # ------- pivot to longer
@@ -233,17 +159,10 @@ cf_predominance <-
 cf_predominance  <- 
   cf_predominance |> 
   dplyr::group_by(sample_id) |> 
-<<<<<<< HEAD
       # remove human assigned reads
   dplyr::filter(!grepl("omo sapiens", name)) |> 
     # calculate relative abundance after pruning human reads
   dplyr::mutate(relative_abundance = assigned_reads / sum (assigned_reads)) |> 
-=======
-    # calculate relative abundance
-  dplyr::mutate(relative_abundance = assigned_reads / sum (assigned_reads)) |> 
-    # remove human assigned reads
-  dplyr::filter(!grepl("omo sapiens", name)) |> 
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
     # select top bacterial abundance
   dplyr::slice_max(n = 1, order_by = relative_abundance) |>
     # add factor to denote samples with predominance of pseudomonas
@@ -271,25 +190,16 @@ ncfb_predominance <-
 ncfb_predominance  <- 
   ncfb_predominance |> 
   dplyr::group_by(sample_id) |> 
-<<<<<<< HEAD
   dplyr::filter(!grepl("omo sapiens", name)) |> 
   dplyr::mutate(relative_abundance = assigned_reads / sum (assigned_reads)) |>
   dplyr::slice_max(n = 1, order_by = relative_abundance) |>
   dplyr::mutate(predominance = case_when(name == "Pseudomonas aeruginosa" & relative_abundance >= 0.2 ~ 'P. aeruginosa',
                                          TRUE ~ 'Other')) 
-=======
-  dplyr::mutate(relative_abundance = assigned_reads / sum (assigned_reads)) |> 
-  dplyr::filter(!grepl("omo sapiens", name)) |> 
-  dplyr::slice_max(n = 1, order_by = relative_abundance) |>
-  dplyr::mutate(predominance = case_when(name == "Pseudomonas aeruginosa" & relative_abundance >= 0.3 ~ 'P. aeruginosa',
-                                         TRUE ~ 'Other'))
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 
   # remove summary_tsv to keep environment tidy
 rm(ncfb_summary_tsv)
 ```
 
-<<<<<<< HEAD
 ### Codify predominance in phyloseq objects
 
 Here we add the grouping variable to our main phyloseq objects. Also, we filter out the low abundancy taxa (should not be done in dataset to use for alpha diversity) and produce a phyloseq object with relative abundances of different taxa
@@ -323,32 +233,6 @@ cf_rel_abundance  <-
 Produce a summary bar plot of all species according to predominance variable
 
 ```{r CF distribution of taxa}
-=======
-## Add factor variable of pseudomonas predominance to phyloseq object and create 
-phyloseq objects with relative abundance
-
-```{r}
-  # CF
-sample_data(cf_ps)$Predominance <- cf_predominance$predominance
-
-  # NCFB
-sample_data(ncfb_ps)$Predominance <- ncfb_predominance$predominance
-
-  # relative abundance
-cf_rel_abundance <- transform_sample_counts(cf_ps, 
-                                            function(OTU) OTU/sum(OTU) )
-ncfb_rel_abundance <- transform_sample_counts(ncfb_ps, 
-                                              function(OTU) OTU/sum(OTU))
-```
-
-## Alpha diversity by predominance group
-
-### CF
-
-Produce a summary bar plot of all species according to predominance variable
-
-```{r}
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 cf_rel_abundance %>% 
     # summarize at phylum level
   plot_bar(x = "Sample",
@@ -360,16 +244,10 @@ cf_rel_abundance %>%
   labs(title = expression("CF with"~italic(Pseudomonas)~"spp. predominance"))
 ```
 
-<<<<<<< HEAD
 I now calculate alpha diversity measurement and from the resulting plot obtain the summarized estimates too
 
 ```{r CF alpha diversity violin plot}
-=======
-I now calculate alpha diversity measurement and from the resulting plot obtain
-the summarized estimates too
 
-```{r}
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 cf_alpha <- 
     # plots according to predominance
   plot_richness(cf_ps, x = "Predominance",
@@ -388,16 +266,10 @@ cf_alpha <-
                         map_signif_level = TRUE) ; cf_alpha
 ```
 
-<<<<<<< HEAD
+
 Then, using the results from `plot_richness()` which also summarize the richness value for all samples, I create a table with the mean **alpha diversity measurements** and the resulting Wilcoxon p_value
 
 ```{r CF alpha diversity table}
-=======
-Then, using the results from `plot_richness()` which also summarize the richness value for all samples, I create a table with the mean **alpha diversity measurements** and the
-resulting Wilcoxon p_value
-
-```{r}
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
 
 cf_alpha$data |>
     # group by alpha measure variable and predominance
@@ -414,7 +286,6 @@ cf_alpha$data |>
   flextable::align(align = "center", part = "header")
 ```
 
-<<<<<<< HEAD
 ### NCFB - Alpha diversity by predominance 
 
 The same analysis is repeated for the NCFB samples.
@@ -464,7 +335,6 @@ ncfb_alpha$data |>
   flextable::align(align = "center", part = "header")
 ```
 
-<<<<<<< HEAD
 ### CF Beta diversity
 
 For both diseases, I measure beta-diversity using primarily the bray-curtis index
@@ -559,7 +429,3 @@ plot_list[[1]] +
   theme(plot.title = element_text(face = "bold", hjust = 0.5, size = 18) )
 
 ```
-=======
-## Beta diversity 
-
->>>>>>> ccda4328cacbd6d9d53439c92e694d025cc64770
