@@ -255,7 +255,7 @@ nextflow run nf-core/taxprofiler -r 1.0.0 \
   - I classified down to **Genus** as this is the interest of the study and will limit read_length to 100
 - The output is used in `kraken-biom v1.2.0` (avoids errors) with options to produce `.json` formatted files
   - Succesfully imported to R
- 
+
 ```sh
 # apply to both diseases
 for disease in {cf,ncfb}
@@ -281,3 +281,10 @@ for disease in {cf,ncfb}
 # delete unnecessary output
 rm /scratch/mdprieto/results/cf_seed/taxprof_{cf,ncfb}/bracken/k2_reports/*_to_delete
 ```
+
+## 20230822 - Correcting de-hosting issue with NCFB data
+
+- I do a pilot run with NCFB producing krona plots to see if by specifying adequately the reference human genome and **Bowtie2** indexes we get a better result
+  - **Result:** no changes, seems like initial de-hosting was done adequately
+- As necessary for this analysis, the **database_samplesheet** is modified to summarize bracken at the genus level
+- The custom config file was modified to produce kraken_style output for bracken too, this way the output can be used to create the **.biom** file

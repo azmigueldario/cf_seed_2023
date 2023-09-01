@@ -119,36 +119,51 @@ for disease in {cf,ncfb}
 
     done
 
-
-
-
     # Biom no added name/rank data
 TAXPASTA_IMG="/mnt/cidgoh-object-storage/images/depot.galaxyproject.org-singularity-taxpasta-0.4.1--pyhdfd78af_0.img"
-singularity exec $TAXPASTA_IMG taxpasta merge \
-    --profiler bracken \
-    --output ncfb_bracken.biom \
-    --summarise-at genus \
-    --output-format biom \
-    --taxonomy /mnt/cidgoh-object-storage/database/kraken2/taxdump \
-    --add-lineage \
-    /scratch/mdprieto/results/cf_seed/taxprof_ncfb/bracken/k2_db/NCFB_*
+for disease in {cf,ncfb}
+    do 
+    singularity exec $TAXPASTA_IMG taxpasta merge \
+        --profiler bracken \
+        --output ${disease}_taxpasta.biom \
+        --summarise-at genus \
+        --output-format biom \
+        --taxonomy /mnt/cidgoh-object-storage/database/kraken2/taxdump \
+        --add-lineage \
+        /scratch/mdprieto/results/cf_seed/taxprof_${disease}/bracken/k2_db/*
+    done
+
+```
+
+## Troubleshoot poor de-hosting in NCFB samples
+
+May be due to unspecified reference genome the step was missed
+
+```sh
+# ENV variables
+SAMPLE_SHEET_NCFB="/project/60006/mdprieto/cf_seed_2023/processed_data/samplesheets/pilot_taxprof.csv"
+DB_CSV="/project/60006/mdprieto/cf_seed_2023/processed_data/samplesheets/db_taxprof.csv"
+EAGLE_CONFIG="/project/60006/mdprieto/cf_seed_2023/scripts/eagle.config"
+
+################################### pipeline ###########################################
+
+nextflow run nf-core/taxprofiler -r 1.0.1 \
+    -profile singularity \
+    -resume \
+    -c $EAGLE_CONFIG \
+    -work-dir /project/60006/mdprieto/nf_work_project \
+    --input  $SAMPLE_SHEET_NCFB \
+    --databases $DB_CSV \
+    --outdir /scratch/mdprieto/results/cf_seed/taxprof_ncfb \
+    --perform_shortread_qc \
+    --perform_shortread_complexityfilter \
+    --run_bracken \
+    --run_kraken2 \
+    --run_centrifuge \
+    --run_profile_standardisation \
+    --save_hostremoval_index
     
-    # same for CF
-TAXPASTA_IMG="/mnt/cidgoh-object-storage/images/depot.galaxyproject.org-singularity-taxpasta-0.4.1--pyhdfd78af_0.img"
-singularity exec $TAXPASTA_IMG taxpasta merge \
-    --profiler bracken \
-    --output cf_bracken.biom \
-    --summarise-at genus \
-    --output-format biom \
-    --taxonomy /mnt/cidgoh-object-storage/database/kraken2/taxdump \
-    --add-lineage \
-    /scratch/mdprieto/results/cf_seed/taxprof_cf/bracken/k2_db/NCFB_*
     
-    # using kraken-biom tool
-singularity exec /mnt/cidgoh-object-storage/images/kraken-biom_1.2.0.sif kraken-biom \
-    --fmt json \
-    --max S \
-    -o kraken_biom.biom \
-    /scratch/mdprieto/results/cf_seed/taxprof_cf/kraken2/k2_db/*
-    
+    #bowtie index
+02/4c0c2913266400ce138f010bbf9516
 ```
