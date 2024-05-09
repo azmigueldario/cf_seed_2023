@@ -85,7 +85,7 @@ salloc --time=02:00:00 --ntasks=1 --cpus-per-task=8  --mem-per-cpu=8G
 
 ### 20230309
 
-- Downloaded singularity image for sra toolkit
+- Downloaded singularity image for the sra toolkit
 - Configured tool using `vdb-config -i` and setting a temporary directory to prefetch data in the `/scratch` directory
 - Suggestion by Amy: <https://www.bv-brc.org/app/MetagenomicReadMapping>. Helps to map virulence in metagenomes
 
