@@ -42,7 +42,7 @@ Temporary Items
 ### Data ###
 ############
 
-*.csv
+
 *.dat
 *.efx
 *.gbr
@@ -59,6 +59,14 @@ Temporary Items
 *.fq
 *.bam
 *.sam
+*.gff
 
 # Data directories
 raw_data
+# results
+
+###### NEXTFLOW #####
+#####################
+
+.nextflow*
+.Rproj.user

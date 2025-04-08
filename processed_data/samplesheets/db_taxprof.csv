@@ -1,0 +1,3 @@
+tool,db_name,db_params,db_path
+bracken,k2_db,;-r 100,/mnt/cidgoh-object-storage/database/kraken2
+centrifuge,db1,,/mnt/cidgoh-object-storage/database/centrifuge
